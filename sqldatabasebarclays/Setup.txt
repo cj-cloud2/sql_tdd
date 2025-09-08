@@ -1,0 +1,31 @@
+
+
+sqlplus sys/tiger@localhost:1521/XEPDB1 as sysdba
+
+
+
+
+link to download utPLSQL:
+https://github.com/utPLSQL/utPLSQL/releases
+
+Steps:
+
+Step 1: Create Schema
+@C:\utPLSQL\source\create_utplsql_owner.sql ut3 ut3 users
+
+Step 2: Install teh FRameWork
+@C:C:\utPLSQL\source\install.sql ut3
+
+Step 3:(Grant access to public) Execute this from SQLPlus
+@C:\utPLSQL\source\create_synonyms_and_grants_for_public ut3
+
+
+
+Step 4: Configuring SQL developer to Run tests from SQL DEeloper
+https://github.com/utPLSQL/utPLSQL-SQLDeveloper (Just HElp)
+https://github.com/utPLSQL/utPLSQL-SQLDeveloper/releases
+	Installation
+		Start SQL Developer
+		Select Check for Updates… in the help menu.
+		Use the Install From Local File option to install the previously downloaded utplsql_for_SQLDev_*.zip file.
+

@@ -1,0 +1,250 @@
+{\rtf1\fbidis\ansi\ansicpg1252\deff0\nouicompat\deflang2057{\fonttbl{\f0\froman\fprq2\fcharset0 Times New Roman;}{\f1\froman\fprq2 Times New Roman;}}
+{\colortbl ;\red0\green176\blue80;}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs36\lang9 Test-Driven Development (TDD) for an INSERT query in pure SQL using utPLSQL, with clear explanations, proper \b structure\b0 , and \b clean test setup/teardown\b0 .\par
+\par
+\b\fs32 Objective\b0\fs36\par
+\fs28 We want to develop and test an \i INSERT \i0 query that adds a new employee into the employees table.\par
+\par
+\b\fs36 TDD Flow Recap\b0\fs28\par
+\b Step\tab Description\b0\par
+
+\pard\sl276\slmult1\lang2057 1: \lang9 Write the test first (it fails initially)\par
+\lang2057 2: \lang9 Develop the INSERT query that makes it pass\par
+\lang2057 3: \lang9 Run the test again (it passes)\par
+\lang2057 4: \lang9 Add setup/teardown for clean, isolated tests\par
+\par
+\b\fs32 Step 1: Create the employees Table (if not exists)\b0\fs28\par
+\cf1\fs24 CREATE TABLE employees (\par
+   employee_id NUMBER PRIMARY KEY,\par
+   first_name  VARCHAR2(100),\par
+   last_name   VARCHAR2(100)\par
+);\par
+\par
+\cf0\fs28 You need this table structure for the tests.\par
+\b\fs32\par
+Step 2: Write the Test First\par
+\fs28 We'll write a test that says:\fs32\par
+\par
+\b0\f1\fs28\ldblquote\f0 After inserting a new employee with ID 200 and name 'John Gordan', the row should exist in the table.\f1\rdblquote\par
+\par
+\b\fs32 Test Package Specification\par
+
+\pard\li720\sl276\slmult1\cf1\b0\fs24 CREATE OR REPLACE PACKAGE test_insert_employee IS\par
+  --%suite(Insert SQL Tests)\par
+\par
+  --%test(Should insert a new employee and verify existence)\par
+  PROCEDURE test_insert_employee_row;\par
+\par
+  --%beforeeach\par
+  PROCEDURE setup;\par
+\par
+  --%aftereach\par
+  PROCEDURE teardown;\par
+END test_insert_employee;\par
+/\par
+\par
+
+\pard\fi-578\li720\sl276\slmult1\cf0\b\fs36 Test Package Body\par
+\cf1\b0\fs24 CREATE OR REPLACE PACKAGE BODY test_insert_employee IS\par
+\par
+  PROCEDURE setup IS\par
+  BEGIN\par
+    -- Ensure no row exists before each test\par
+    DELETE FROM employees WHERE employee_id = 200;\par
+  END;\par
+\par
+  PROCEDURE teardown IS\par
+  BEGIN\par
+    -- Clean up after each test\par
+    DELETE FROM employees WHERE employee_id = 200;\par
+  END;\par
+\par
+  PROCEDURE test_insert_employee_row IS\par
+    l_count INTEGER;\par
+  BEGIN\par
+    -- This is your test target: Insert query\par
+    INSERT INTO employees (employee_id, first_name, last_name)\par
+    VALUES (200, 'John', 'Smith');\par
+\par
+    -- Check if the row exists\par
+    SELECT COUNT(*) INTO l_count\par
+    FROM employees\par
+    WHERE employee_id = 200\par
+      AND first_name = 'John'\par
+      AND last_name = '\f0\lang2057 Gordan\f1\lang9 ';\par
+\par
+    -- Assert\par
+    ut.expect(l_count).to_equal(1);\par
+  END;\par
+\par
+END test_insert_employee;\par
+/\par
+\par
+\cf0\b\fs40 Step 2: Run the Test\par
+
+\pard\fi-578\li1440\sl276\slmult1\cf1\b0\fs24 BEGIN\par
+   ut.run('test_insert_employee');\par
+END;\par
+/\par
+
+\pard\fi-1298\li1440\sl276\slmult1\cf0\b\fs32 Expected Output\par
+\cf1\b0\fs24 Insert SQL Tests\par
+  Should insert a new employee and verify existence [SUCCESS]\par
+\par
+
+\pard\li142\sl276\slmult1\cf0\fs28 If your table didn't exist or the insert had issues, it would fail. That\rquote s expected TDD behavior at first!\par
+\par
+\b\fs36 What Just Happened?\b0\fs28\par
+\b\fs24 Part\tab\f0\lang2057\tab\tab\tab\f1\lang9 Purpose\b0\par
+test_insert_employee_row\tab This is your test logic for the INSERT\par
+setup\tab\f0\lang2057\tab\tab\tab\f1\lang9 Ensures the test runs in a clean state (deletes \f0\lang2057\tab\tab\tab\tab\tab\tab\tab\f1\lang9 the row if it exists)\par
+teardown\tab\f0\lang2057\tab\tab\f1\lang9 Cleans up so future tests aren\rquote t affected\par
+ut.expect(...)\tab\f0\lang2057\tab\tab\f1\lang9 This is your assertion for TDD: it checks the \f0\lang2057\tab\tab\tab\tab\tab\tab\tab\f1\lang9 effect of the INSERT\par
+\par
+\b\fs32\par
+Bonus: Testing Duplicates or Constraints (Negative Test)\par
+\par
+\b0\fs28 Let\rquote s say your table has a primary key, and inserting a duplicate should fail.\par
+\par
+You could write:\par
+
+\pard\li862\sl276\slmult1\cf1 --%test(Should raise error on duplicate insert)\par
+PROCEDURE test_insert_duplicate;\par
+
+\pard\li142\sl276\slmult1\cf0\par
+\b And in the body:\par
+
+\pard\li862\sl276\slmult1\cf1\b0\fs24 PROCEDURE test_insert_duplicate IS\par
+BEGIN\par
+  -- First insert\par
+  INSERT INTO employees (employee_id, first_name, last_name)\par
+  VALUES (200, 'John', 'Smith');\par
+\par
+  -- Second insert should raise error (duplicate PK)\par
+  ut.expect(\par
+    q'[\par
+      INSERT INTO employees (employee_id, first_name, last_name)\par
+      VALUES (200, 'John', 'Smith')\par
+    ]'\par
+  ).to_raise_constraint('EMPLOYEES_PK'); -- or use actual constraint name\par
+END;\par
+\par
+\par
+
+\pard\fi-720\li862\sl276\slmult1\cf0\b\fs32 Complete SQL Script\f0\lang2057 :\par
+-- =====================================\par
+-- 1. Create table (if not already exists)\par
+-- =====================================\par
+
+\pard\fi-720\li1582\sl276\slmult1\cf1\b0\fs24 BEGIN\par
+   EXECUTE IMMEDIATE 'DROP TABLE employees';\par
+EXCEPTION\par
+   WHEN OTHERS THEN\par
+      IF SQLCODE != -942 THEN\par
+         RAISE;\par
+      END IF;\par
+END;\par
+/\par
+\par
+CREATE TABLE employees (\par
+   employee_id NUMBER PRIMARY KEY,\par
+   first_name  VARCHAR2(100),\par
+   last_name   VARCHAR2(100)\par
+);\par
+/\par
+
+\pard\fi-720\li862\sl276\slmult1\cf0\b\fs32\par
+-- =====================================\par
+-- 2. Create test package spec\par
+-- =====================================\par
+\cf1\b0\fs24 CREATE OR REPLACE PACKAGE test_insert_employee IS\par
+  --%suite(Insert SQL Tests)\par
+\par
+  --%test(Should insert a new employee and verify existence)\par
+  PROCEDURE test_insert_employee_row;\par
+\par
+  --%test(Should raise error on duplicate insert)\par
+  PROCEDURE test_insert_duplicate;\par
+\par
+  --%beforeeach\par
+  PROCEDURE setup;\par
+\par
+  --%aftereach\par
+  PROCEDURE teardown;\par
+END test_insert_employee;\par
+/\par
+\cf0\b\fs32\par
+-- =====================================\par
+-- 3. Create test package body\par
+-- =====================================\par
+
+\pard\fi-720\li1582\sl276\slmult1\cf1\b0\fs24 CREATE OR REPLACE PACKAGE BODY test_insert_employee IS\par
+\par
+  PROCEDURE setup IS\par
+  BEGIN\par
+    DELETE FROM employees WHERE employee_id = 200;\par
+  END;\par
+\par
+  PROCEDURE teardown IS\par
+  BEGIN\par
+    DELETE FROM employees WHERE employee_id = 200;\par
+  END;\par
+\par
+  PROCEDURE test_insert_employee_row IS\par
+    l_count INTEGER;\par
+  BEGIN\par
+    -- Test logic: Insert\par
+    INSERT INTO employees (employee_id, first_name, last_name)\par
+    VALUES (200, 'John', 'Smith');\par
+\par
+    -- Verify the row exists\par
+    SELECT COUNT(*) INTO l_count\par
+    FROM employees\par
+    WHERE employee_id = 200\par
+      AND first_name = 'John'\par
+      AND last_name = 'Smith';\par
+\par
+    ut.expect(l_count).to_equal(1);\par
+  END;\par
+\par
+  PROCEDURE test_insert_duplicate IS\par
+  BEGIN\par
+    -- Insert once\par
+    INSERT INTO employees (employee_id, first_name, last_name)\par
+    VALUES (200, 'John', 'Smith');\par
+\par
+    -- Insert again with same primary key: should raise unique constraint\par
+    ut.expect(\par
+      q'[\par
+        INSERT INTO employees (employee_id, first_name, last_name)\par
+        VALUES (200, 'John', 'Smith')\par
+      ]'\par
+    ).to_raise_constraint('SYS_C007XXX');  -- Replace with actual PK constraint name if needed\par
+  END;\par
+\par
+END test_insert_employee;\par
+/\par
+\par
+-- =====================================\par
+-- 4. Run the tests\par
+-- =====================================\par
+BEGIN\par
+   ut.run('test_insert_employee');\par
+END;\par
+/\par
+\par
+
+\pard\fi-1440\li1582\sl276\slmult1\cf0\b\fs44 Notes:\par
+
+\pard 
+{\pntext\f0 1.\tab}{\*\pn\pnlvlbody\pnf0\pnindent0\pnstart1\pndec{\pntxta.}}
+\fi-360\li502\sl276\slmult1\b0\fs24 1. The script drops the employees table if it already exists.\par
+{\pntext\f0 2.\tab}2. Replace 'SYS_C007XXX' with your actual primary key constraint name from USER_CONSTRAINTS if needed:\par
+{\pntext\f0 3.\tab}\cf1 SELECT constraint_name FROM user_constraints WHERE table_name = 'EMPLOYEES' AND constraint_type = 'P';\cf0\par
+
+\pard\sl276\slmult1\par
+
+\pard\li720\sl276\slmult1 3:ut.expect(...).to_raise_constraint(...) will catch expected constraint violations.\par
+}
+ 
